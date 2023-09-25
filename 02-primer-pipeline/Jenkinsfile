@@ -1,19 +1,51 @@
 pipeline {
     agent any
     stages {
-        stage('docker build') {
+        stage('Agregar a grupo docker') {
             steps {
                 script {
-                    sh "docker build -f 02-primer-pipeline/Dockerfile -t juniorsaul08/prueba_ci_dc:1.0.0-${BUILD_ID} 02-primer-pipeline"
+                    // Añadir al usuario de Jenkins al grupo docker
+                    sh 'sudo usermod -a -G docker jenkins'
+                    
+                    // Reiniciar el servidor Jenkins para aplicar cambios (opcional)
+                    sh 'sudo systemctl restart jenkins'
                 }
             }
         }
-        stage('docker push') {
+        stage('Construir Imagen Docker') {
             steps {
-                script {
-                    sh "docker push juniorsaul08/prueba_ci_dc:1.0.0-${BUILD_ID}"
-                }
+                // Coloca aquí tu comando para construir la imagen Docker
+                sh 'docker build -f 02-primer-pipeline/Dockerfile -t prueba_ci_dc:latest .'
             }
         }
+       // stage('docker build') {
+        //    steps {
+        //        script {
+        //            
+        //            sh "docker build -f 02-primer-pipeline/Dockerfile -t juniorsaul08/prueba_ci_dc:1.0.0-${BUILD_ID} 02-primer-pipeline"
+        //        }
+        //    }
+        //}
+         stage('Push de Imagen Docker') {
+            steps {
+                // Obtiene la credencial almacenada en Jenkins
+                    withCredentials([usernamePassword(credentialsId: '45623245', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                        
+                        // Utiliza las variables USERNAME y PASSWORD en tus comandos
+                        sh "docker login -u $USERNAME -p $PASSWORD"
+                        sh "docker build -t prueba_ci_dc:latest ."
+                        sh "docker push prueba_ci_dc:latest"
+                        // Limpia las variables para mayor seguridad
+                        sh "unset USERNAME"
+                        sh "unset PASSWORD"
+            }
+        }
+       // stage('docker push') {
+        //    steps {
+        //        script {
+        //            sh "docker push juniorsaul08/prueba_ci_dc:1.0.0-${BUILD_ID}"
+        //        }
+        //    }
+        //}
     }
 }
